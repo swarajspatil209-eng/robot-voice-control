@@ -45,17 +45,13 @@
         const espIP = "http://192.168.0.197";
 
         function sendCommand(cmd) {
-            document.getElementById("status").innerText = "Sending: " + cmd;
+    document.getElementById("status").innerText = "Sending: " + cmd;
 
-            fetch(`${espIP}/${cmd}`)
-                .then(response => {
-                    document.getElementById("status").innerText = "Done: " + cmd;
-                })
-                .catch(error => {
-                    document.getElementById("status").innerText = "Error sending command";
-                    console.error(error);
-                });
-        }
+    var img = new Image();
+    img.src = `${espIP}/${cmd}`;
+
+    document.getElementById("status").innerText = "Done: " + cmd;
+}
 
         function startVoice() {
             if (!('webkitSpeechRecognition' in window)) {
