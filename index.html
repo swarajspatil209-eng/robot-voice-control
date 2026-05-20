@@ -1,99 +1,548 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>ESP8266 Voice Robot</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body {
-            text-align: center;
-            font-family: Arial;
-            background: #111;
-            color: white;
-        }
-        button {
-            width: 120px;
-            height: 60px;
-            margin: 10px;
-            font-size: 18px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-        .forward { background: green; }
-        .backward { background: red; }
-        .left { background: blue; }
-        .right { background: orange; }
-        .stop { background: gray; }
-        .voice { background: purple; width: 200px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ROBO-CTRL</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #00ffe0;
+      --accent-dim: rgba(0,255,224,0.15);
+      --accent-glow: rgba(0,255,224,0.35);
+      --danger: #ff4455;
+      --warn: #ffb700;
+      --bg: #07090f;
+      --surface: #0d1117;
+      --border: rgba(0,255,224,0.18);
+      --text: #c8d8e8;
+      --text-muted: #4a6278;
+      --mono: 'Share Tech Mono', monospace;
+      --display: 'Rajdhani', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--display);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 40px;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,255,224,0.06) 0%, transparent 70%),
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,255,224,0.025) 39px, rgba(0,255,224,0.025) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,255,224,0.025) 39px, rgba(0,255,224,0.025) 40px);
+    }
+
+    /* ── Header ── */
+    header {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+    }
+
+    .logo {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-title {
+      font-family: var(--mono);
+      font-size: 22px;
+      color: var(--accent);
+      letter-spacing: 4px;
+      line-height: 1;
+    }
+
+    .logo-sub {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .ip-badge {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+    }
+
+    /* ── Status bar ── */
+    .status-bar {
+      width: 100%;
+      max-width: 480px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      min-height: 44px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.listening {
+      background: var(--warn);
+      box-shadow: 0 0 8px var(--warn);
+      animation: fast-pulse 0.6s infinite;
+    }
+
+    .status-dot.error {
+      background: var(--danger);
+      box-shadow: 0 0 8px var(--danger);
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    @keyframes fast-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.4); }
+    }
+
+    .status-label {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      flex: 1;
+      letter-spacing: 1px;
+    }
+
+    .status-label span {
+      color: var(--accent);
+    }
+
+    /* ── D-Pad Controls ── */
+    .controls-section {
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 24px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 90px);
+      grid-template-rows: repeat(3, 90px);
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .ctrl-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: var(--display);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.1s, border-color 0.1s, transform 0.08s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ctrl-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      opacity: 0;
+      transition: opacity 0.1s;
+      border-radius: inherit;
+    }
+
+    .ctrl-btn:active::after { opacity: 0.08; }
+    .ctrl-btn:active { transform: scale(0.94); border-color: var(--accent); }
+    .ctrl-btn:hover { border-color: rgba(0,255,224,0.4); background: rgba(0,255,224,0.04); }
+
+    .ctrl-btn .icon {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .ctrl-btn.fwd  { grid-column: 2; grid-row: 1; }
+    .ctrl-btn.left { grid-column: 1; grid-row: 2; }
+    .ctrl-btn.stop { grid-column: 2; grid-row: 2; border-color: rgba(255,68,85,0.3); }
+    .ctrl-btn.stop:hover { border-color: rgba(255,68,85,0.6); background: rgba(255,68,85,0.05); }
+    .ctrl-btn.stop:active { border-color: var(--danger); }
+    .ctrl-btn.right { grid-column: 3; grid-row: 2; }
+    .ctrl-btn.back  { grid-column: 2; grid-row: 3; }
+
+    .ctrl-btn.fwd .icon,
+    .ctrl-btn.back .icon,
+    .ctrl-btn.left .icon,
+    .ctrl-btn.right .icon { color: var(--accent); }
+
+    .ctrl-btn.stop .icon { color: var(--danger); font-size: 20px; }
+
+    .corner-cell { grid-column: 1; grid-row: 1; }
+    .corner-cell-2 { grid-column: 3; grid-row: 1; }
+    .corner-cell-3 { grid-column: 1; grid-row: 3; }
+    .corner-cell-4 { grid-column: 3; grid-row: 3; }
+
+    /* ── Speed Control ── */
+    .speed-section {
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 24px;
+    }
+
+    .speed-track {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .speed-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      letter-spacing: 1px;
+    }
+
+    .speed-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 3px;
+      background: linear-gradient(to right, var(--accent) var(--pct, 75%), rgba(0,255,224,0.12) var(--pct, 75%));
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .speed-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+      cursor: pointer;
+    }
+
+    .speed-val {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--accent);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ── Voice ── */
+    .voice-section {
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 24px;
+    }
+
+    .voice-btn {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      font-family: var(--display);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text);
+      transition: background 0.15s, border-color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .voice-btn:hover {
+      border-color: rgba(0,255,224,0.4);
+      background: rgba(0,255,224,0.04);
+    }
+
+    .voice-btn:active { transform: scale(0.98); }
+
+    .voice-btn.active {
+      border-color: var(--warn);
+      background: rgba(255,183,0,0.06);
+      color: var(--warn);
+    }
+
+    .mic-icon {
+      font-size: 22px;
+      transition: color 0.15s;
+    }
+
+    .voice-btn.active .mic-icon {
+      animation: mic-pulse 0.8s infinite;
+    }
+
+    @keyframes mic-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+
+    /* ── Command Log ── */
+    .log-section {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .log-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      max-height: 120px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column-reverse;
+    }
+
+    .log-box::-webkit-scrollbar { width: 3px; }
+    .log-box::-webkit-scrollbar-track { background: transparent; }
+    .log-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .log-entry {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 3px 0;
+      display: flex;
+      gap: 10px;
+      line-height: 1.5;
+    }
+
+    .log-entry:first-child { color: var(--text); }
+
+    .log-time { color: var(--text-muted); flex-shrink: 0; }
+    .log-cmd  { color: var(--accent); }
+    .log-err  { color: var(--danger); }
+  </style>
 </head>
 <body>
 
-    <h1>ESP8266 Robot Control</h1>
+  <header>
+    <div class="logo">
+      <div class="logo-title">ROBO-CTRL</div>
+      <div class="logo-sub">ESP8266 Interface · v2.0</div>
+    </div>
+    <div class="ip-badge" id="ip-display">192.168.0.186</div>
+  </header>
 
-    <button class="forward" onclick="sendCommand('forward')">Forward</button><br>
-    <button class="left" onclick="sendCommand('left')">Left</button>
-    <button class="stop" onclick="sendCommand('stop')">Stop</button>
-    <button class="right" onclick="sendCommand('right')">Right</button><br>
-    <button class="backward" onclick="sendCommand('backward')">Backward</button><br><br>
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <div class="status-label" id="status-label">System <span>READY</span> — awaiting command</div>
+  </div>
 
-    <button class="voice" onclick="startVoice()">🎤 Start Voice Command</button>
+  <!-- D-Pad -->
+  <div class="controls-section">
+    <div class="section-label">Direction Control</div>
+    <div class="dpad">
+      <div class="corner-cell"></div>
+      <button class="ctrl-btn fwd" onclick="sendCommand('forward')">
+        <span class="icon">▲</span>
+        <span>FWD</span>
+      </button>
+      <div class="corner-cell-2"></div>
 
-    <h2 id="status">Waiting...</h2>
+      <button class="ctrl-btn left" onclick="sendCommand('left')">
+        <span class="icon">◀</span>
+        <span>LEFT</span>
+      </button>
+      <button class="ctrl-btn stop" onclick="sendCommand('stop')">
+        <span class="icon">■</span>
+        <span>STOP</span>
+      </button>
+      <button class="ctrl-btn right" onclick="sendCommand('right')">
+        <span class="icon">▶</span>
+        <span>RIGHT</span>
+      </button>
 
-    <script>
-        const espIP = "http://192.168.0.186";
+      <div class="corner-cell-3"></div>
+      <button class="ctrl-btn back" onclick="sendCommand('backward')">
+        <span class="icon">▼</span>
+        <span>BACK</span>
+      </button>
+      <div class="corner-cell-4"></div>
+    </div>
+  </div>
 
-        function sendCommand(cmd) {
-    document.getElementById("status").innerText = "Sending: " + cmd;
+  <!-- Speed -->
+  <div class="speed-section">
+    <div class="section-label">Motor Speed</div>
+    <div class="speed-track">
+      <span class="speed-label">SPEED</span>
+      <input type="range" class="speed-slider" id="speed-slider" min="0" max="100" value="75" step="1"
+        oninput="updateSpeed(this.value)">
+      <span class="speed-val" id="speed-val">75%</span>
+    </div>
+  </div>
 
-    var img = new Image();
-    img.src = `${espIP}/${cmd}`;
+  <!-- Voice -->
+  <div class="voice-section">
+    <div class="section-label">Voice Command</div>
+    <button class="voice-btn" id="voice-btn" onclick="startVoice()">
+      <span class="mic-icon">🎤</span>
+      <span id="voice-btn-text">Activate Voice</span>
+    </button>
+  </div>
 
-    document.getElementById("status").innerText = "Done: " + cmd;
-}
+  <!-- Log -->
+  <div class="log-section">
+    <div class="section-label">Command Log</div>
+    <div class="log-box" id="log-box">
+      <div class="log-entry">
+        <span class="log-time">--:--:--</span>
+        <span>System initialized</span>
+      </div>
+    </div>
+  </div>
 
-        function startVoice() {
-            if (!('webkitSpeechRecognition' in window)) {
-                alert("Speech recognition not supported in this browser");
-                return;
-            }
+  <script>
+    const espIP = "http://192.168.0.186";
 
-            const recognition = new webkitSpeechRecognition();
-            recognition.lang = "en-US";
-            recognition.start();
+    function ts() {
+      const d = new Date();
+      return [d.getHours(), d.getMinutes(), d.getSeconds()]
+        .map(n => String(n).padStart(2, '0')).join(':');
+    }
 
-            document.getElementById("status").innerText = "Listening...";
+    function log(msg, type = '') {
+      const box = document.getElementById('log-box');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<span class="log-time">${ts()}</span><span class="${type ? 'log-' + type : ''}">${msg}</span>`;
+      box.prepend(entry);
+      while (box.children.length > 20) box.removeChild(box.lastChild);
+    }
 
-            recognition.onresult = function(event) {
-                const command = event.results[0][0].transcript.toLowerCase();
-                document.getElementById("status").innerText = "Heard: " + command;
+    function setStatus(msg, state = 'idle') {
+      const dot = document.getElementById('status-dot');
+      const lbl = document.getElementById('status-label');
+      dot.className = 'status-dot' + (state !== 'idle' ? ' ' + state : '');
+      lbl.innerHTML = msg;
+    }
 
-                if (command.includes("forward")) {
-                    sendCommand("forward");
-                }
-                else if (command.includes("back")) {
-                    sendCommand("backward");
-                }
-                else if (command.includes("left")) {
-                    sendCommand("left");
-                }
-                else if (command.includes("right")) {
-                    sendCommand("right");
-                }
-                else if (command.includes("stop")) {
-                    sendCommand("stop");
-                }
-                else {
-                    document.getElementById("status").innerText = "Command not recognized";
-                }
-            };
+    function sendCommand(cmd) {
+      setStatus(`Executing: <span>${cmd.toUpperCase()}</span>`);
+      log(`CMD → ${cmd.toUpperCase()}`, 'cmd');
+      const img = new Image();
+      img.src = `${espIP}/${cmd}`;
+      img.onload  = () => setStatus(`Command <span>${cmd.toUpperCase()}</span> sent`);
+      img.onerror = () => setStatus(`Command <span>${cmd.toUpperCase()}</span> sent`);
+    }
 
-            recognition.onerror = function(event) {
-                document.getElementById("status").innerText = "Voice error";
-            };
+    function updateSpeed(val) {
+      const pct = val + '%';
+      document.getElementById('speed-val').textContent = pct;
+      document.getElementById('speed-slider').style.setProperty('--pct', pct);
+    }
+
+    updateSpeed(75);
+
+    function startVoice() {
+      const btn = document.getElementById('voice-btn');
+      const txt = document.getElementById('voice-btn-text');
+
+      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        setStatus('Voice recognition <span style="color:var(--danger)">NOT SUPPORTED</span>', 'error');
+        log('Voice: browser not supported', 'err');
+        return;
+      }
+
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SR();
+      recognition.lang = 'en-US';
+      recognition.start();
+
+      btn.classList.add('active');
+      txt.textContent = 'Listening…';
+      setStatus('Voice active — <span>speak now</span>', 'listening');
+      log('Voice recognition started', 'cmd');
+
+      recognition.onresult = function(e) {
+        const heard = e.results[0][0].transcript.toLowerCase();
+        btn.classList.remove('active');
+        txt.textContent = 'Activate Voice';
+        log(`Heard: "${heard}"`, 'cmd');
+
+        if      (heard.includes('forward'))  sendCommand('forward');
+        else if (heard.includes('back'))     sendCommand('backward');
+        else if (heard.includes('left'))     sendCommand('left');
+        else if (heard.includes('right'))    sendCommand('right');
+        else if (heard.includes('stop'))     sendCommand('stop');
+        else {
+          setStatus(`Unrecognized: <span>"${heard}"</span>`, 'error');
+          log(`No match for: "${heard}"`, 'err');
         }
-    </script>
+      };
 
+      recognition.onerror = function(e) {
+        btn.classList.remove('active');
+        txt.textContent = 'Activate Voice';
+        setStatus(`Voice error: <span style="color:var(--danger)">${e.error}</span>`, 'error');
+        log('Voice error: ' + e.error, 'err');
+      };
+
+      recognition.onend = function() {
+        btn.classList.remove('active');
+        txt.textContent = 'Activate Voice';
+      };
+    }
+  </script>
 </body>
 </html>
