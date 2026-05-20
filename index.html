@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP8266 Voice Robot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial;
+            background: #111;
+            color: white;
+        }
+        button {
+            width: 120px;
+            height: 60px;
+            margin: 10px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .forward { background: green; }
+        .backward { background: red; }
+        .left { background: blue; }
+        .right { background: orange; }
+        .stop { background: gray; }
+        .voice { background: purple; width: 200px; }
+    </style>
+</head>
+<body>
+
+    <h1>ESP8266 Robot Control</h1>
+
+    <button class="forward" onclick="sendCommand('forward')">Forward</button><br>
+    <button class="left" onclick="sendCommand('left')">Left</button>
+    <button class="stop" onclick="sendCommand('stop')">Stop</button>
+    <button class="right" onclick="sendCommand('right')">Right</button><br>
+    <button class="backward" onclick="sendCommand('backward')">Backward</button><br><br>
+
+    <button class="voice" onclick="startVoice()">🎤 Start Voice Command</button>
+
+    <h2 id="status">Waiting...</h2>
+
+    <script>
+        const espIP = "http://192.168.0.197";
+
+        function sendCommand(cmd) {
+            document.getElementById("status").innerText = "Sending: " + cmd;
+
+            fetch(`${espIP}/${cmd}`)
+                .then(response => {
+                    document.getElementById("status").innerText = "Done: " + cmd;
+                })
+                .catch(error => {
+                    document.getElementById("status").innerText = "Error sending command";
+                    console.error(error);
+                });
+        }
+
+        function startVoice() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Speech recognition not supported in this browser");
+                return;
+            }
+
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = "en-US";
+            recognition.start();
+
+            document.getElementById("status").innerText = "Listening...";
+
+            recognition.onresult = function(event) {
+                const command = event.results[0][0].transcript.toLowerCase();
+                document.getElementById("status").innerText = "Heard: " + command;
+
+                if (command.includes("forward")) {
+                    sendCommand("forward");
+                }
+                else if (command.includes("back")) {
+                    sendCommand("backward");
+                }
+                else if (command.includes("left")) {
+                    sendCommand("left");
+                }
+                else if (command.includes("right")) {
+                    sendCommand("right");
+                }
+                else if (command.includes("stop")) {
+                    sendCommand("stop");
+                }
+                else {
+                    document.getElementById("status").innerText = "Command not recognized";
+                }
+            };
+
+            recognition.onerror = function(event) {
+                document.getElementById("status").innerText = "Voice error";
+            };
+        }
+    </script>
+
+</body>
+</html>
