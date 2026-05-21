@@ -1,548 +1,532 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ROBO-CTRL</title>
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Buddy Robot Controller</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #0f1318;
+    --border: #1e2530;
+    --accent: #00f5c4;
+    --accent2: #0099ff;
+    --danger: #ff4466;
+    --text: #e0eaf5;
+    --muted: #4a5568;
+    --glow: 0 0 20px rgba(0,245,196,0.3);
+    --glow2: 0 0 20px rgba(0,153,255,0.3);
+  }
 
-    :root {
-      --accent: #00ffe0;
-      --accent-dim: rgba(0,255,224,0.15);
-      --accent-glow: rgba(0,255,224,0.35);
-      --danger: #ff4455;
-      --warn: #ffb700;
-      --bg: #07090f;
-      --surface: #0d1117;
-      --border: rgba(0,255,224,0.18);
-      --text: #c8d8e8;
-      --text-muted: #4a6278;
-      --mono: 'Share Tech Mono', monospace;
-      --display: 'Rajdhani', sans-serif;
-    }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--display);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 24px 16px 40px;
-      background-image:
-        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,255,224,0.06) 0%, transparent 70%),
-        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,255,224,0.025) 39px, rgba(0,255,224,0.025) 40px),
-        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,255,224,0.025) 39px, rgba(0,255,224,0.025) 40px);
-    }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
 
-    /* ── Header ── */
-    header {
-      width: 100%;
-      max-width: 480px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 28px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 14px;
-    }
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,245,196,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,196,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
 
-    .logo {
-      display: flex;
-      flex-direction: column;
-    }
+  .everything { position: relative; z-index: 1; width: 100%; max-width: 480px; }
 
-    .logo-title {
-      font-family: var(--mono);
-      font-size: 22px;
-      color: var(--accent);
-      letter-spacing: 4px;
-      line-height: 1;
-    }
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    margin-bottom: 24px;
+    animation: fadeDown 0.6s ease;
+  }
 
-    .logo-sub {
-      font-size: 11px;
-      letter-spacing: 2px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      margin-top: 4px;
-    }
+  header h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.8rem;
+    font-weight: 900;
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 
-    .ip-badge {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-muted);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 6px 12px;
-      border-radius: 4px;
-      letter-spacing: 1px;
-    }
+  header p {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 3px;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
 
-    /* ── Status bar ── */
-    .status-bar {
-      width: 100%;
-      max-width: 480px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 28px;
-      min-height: 44px;
-    }
+  /* ── STATUS BAR ── */
+  .status-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.6s ease 0.1s both;
+  }
 
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-      flex-shrink: 0;
-      box-shadow: 0 0 8px var(--accent);
-      animation: pulse 2s infinite;
-    }
+  .status-card {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
 
-    .status-dot.listening {
-      background: var(--warn);
-      box-shadow: 0 0 8px var(--warn);
-      animation: fast-pulse 0.6s infinite;
-    }
+  .status-card .label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
 
-    .status-dot.error {
-      background: var(--danger);
-      box-shadow: 0 0 8px var(--danger);
-      animation: none;
-    }
+  .status-card .value {
+    font-size: 1.1rem;
+    font-family: 'Orbitron', monospace;
+    color: var(--accent);
+  }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
+  .status-card.danger .value { color: var(--danger); }
 
-    @keyframes fast-pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(1.4); }
-    }
+  /* connection dot */
+  .conn-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .conn-dot.online { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 1.5s infinite; }
+  .conn-dot.obstacle { background: var(--danger); box-shadow: 0 0 8px var(--danger); animation: pulse 0.5s infinite; }
 
-    .status-label {
-      font-family: var(--mono);
-      font-size: 13px;
-      color: var(--text);
-      flex: 1;
-      letter-spacing: 1px;
-    }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
 
-    .status-label span {
-      color: var(--accent);
-    }
+  /* ── D-PAD ── */
+  .dpad-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.6s ease 0.2s both;
+  }
 
-    /* ── D-Pad Controls ── */
-    .controls-section {
-      width: 100%;
-      max-width: 480px;
-      margin-bottom: 24px;
-    }
+  .dpad-title {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    text-align: center;
+  }
 
-    .section-label {
-      font-size: 11px;
-      letter-spacing: 3px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      margin-bottom: 14px;
-    }
+  .dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 80px);
+    grid-template-rows: repeat(3, 80px);
+    gap: 8px;
+    justify-content: center;
+  }
 
-    .dpad {
-      display: grid;
-      grid-template-columns: repeat(3, 90px);
-      grid-template-rows: repeat(3, 90px);
-      gap: 8px;
-      justify-content: center;
-    }
+  .btn {
+    background: #141920;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'Orbitron', monospace;
+    font-size: 1.4rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease;
+    position: relative;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-    .ctrl-btn {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      font-family: var(--display);
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: background 0.1s, border-color 0.1s, transform 0.08s;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      position: relative;
-      overflow: hidden;
-    }
+  .btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: var(--glow);
+    background: rgba(0,245,196,0.05);
+  }
 
-    .ctrl-btn::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: var(--accent);
-      opacity: 0;
-      transition: opacity 0.1s;
-      border-radius: inherit;
-    }
+  .btn:active, .btn.pressed {
+    transform: scale(0.92);
+    background: rgba(0,245,196,0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: var(--glow);
+  }
 
-    .ctrl-btn:active::after { opacity: 0.08; }
-    .ctrl-btn:active { transform: scale(0.94); border-color: var(--accent); }
-    .ctrl-btn:hover { border-color: rgba(0,255,224,0.4); background: rgba(0,255,224,0.04); }
+  .btn-stop {
+    background: rgba(255,68,102,0.08);
+    border-color: rgba(255,68,102,0.3);
+    color: var(--danger);
+    font-size: 0.55rem;
+    letter-spacing: 2px;
+  }
 
-    .ctrl-btn .icon {
-      font-size: 24px;
-      line-height: 1;
-    }
+  .btn-stop:hover, .btn-stop:active, .btn-stop.pressed {
+    background: rgba(255,68,102,0.18);
+    border-color: var(--danger);
+    color: var(--danger);
+    box-shadow: 0 0 20px rgba(255,68,102,0.3);
+  }
 
-    .ctrl-btn.fwd  { grid-column: 2; grid-row: 1; }
-    .ctrl-btn.left { grid-column: 1; grid-row: 2; }
-    .ctrl-btn.stop { grid-column: 2; grid-row: 2; border-color: rgba(255,68,85,0.3); }
-    .ctrl-btn.stop:hover { border-color: rgba(255,68,85,0.6); background: rgba(255,68,85,0.05); }
-    .ctrl-btn.stop:active { border-color: var(--danger); }
-    .ctrl-btn.right { grid-column: 3; grid-row: 2; }
-    .ctrl-btn.back  { grid-column: 2; grid-row: 3; }
+  /* grid positions */
+  .btn-forward  { grid-column: 2; grid-row: 1; }
+  .btn-left     { grid-column: 1; grid-row: 2; }
+  .btn-stop     { grid-column: 2; grid-row: 2; }
+  .btn-right    { grid-column: 3; grid-row: 2; }
+  .btn-backward { grid-column: 2; grid-row: 3; }
 
-    .ctrl-btn.fwd .icon,
-    .ctrl-btn.back .icon,
-    .ctrl-btn.left .icon,
-    .ctrl-btn.right .icon { color: var(--accent); }
+  /* ── CURRENT COMMAND ── */
+  .cmd-display {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
 
-    .ctrl-btn.stop .icon { color: var(--danger); font-size: 20px; }
+  .cmd-display span {
+    color: var(--accent);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+  }
 
-    .corner-cell { grid-column: 1; grid-row: 1; }
-    .corner-cell-2 { grid-column: 3; grid-row: 1; }
-    .corner-cell-3 { grid-column: 1; grid-row: 3; }
-    .corner-cell-4 { grid-column: 3; grid-row: 3; }
+  /* ── SPEED SLIDER ── */
+  .speed-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.6s ease 0.3s both;
+  }
 
-    /* ── Speed Control ── */
-    .speed-section {
-      width: 100%;
-      max-width: 480px;
-      margin-bottom: 24px;
-    }
+  .speed-panel .label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+  }
 
-    .speed-track {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 14px 18px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
+  .speed-panel .label span {
+    color: var(--accent2);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+  }
 
-    .speed-label {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-muted);
-      white-space: nowrap;
-      letter-spacing: 1px;
-    }
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--accent2) 0%, var(--accent2) var(--val, 80%), var(--border) var(--val, 80%));
+    outline: none;
+    cursor: pointer;
+  }
 
-    .speed-slider {
-      flex: 1;
-      -webkit-appearance: none;
-      height: 3px;
-      background: linear-gradient(to right, var(--accent) var(--pct, 75%), rgba(0,255,224,0.12) var(--pct, 75%));
-      border-radius: 2px;
-      outline: none;
-      cursor: pointer;
-    }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 10px var(--accent2);
+    cursor: pointer;
+  }
 
-    .speed-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 10px var(--accent-glow);
-      cursor: pointer;
-    }
+  /* ── LOG ── */
+  .log-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 20px;
+    animation: fadeUp 0.6s ease 0.4s both;
+  }
 
-    .speed-val {
-      font-family: var(--mono);
-      font-size: 14px;
-      color: var(--accent);
-      min-width: 36px;
-      text-align: right;
-    }
+  .log-panel .label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
 
-    /* ── Voice ── */
-    .voice-section {
-      width: 100%;
-      max-width: 480px;
-      margin-bottom: 24px;
-    }
+  .log-entries {
+    height: 90px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 3px;
+  }
 
-    .voice-btn {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      font-family: var(--display);
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--text);
-      transition: background 0.15s, border-color 0.15s;
-      -webkit-tap-highlight-color: transparent;
-    }
+  .log-entries::-webkit-scrollbar { width: 3px; }
+  .log-entries::-webkit-scrollbar-track { background: transparent; }
+  .log-entries::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-    .voice-btn:hover {
-      border-color: rgba(0,255,224,0.4);
-      background: rgba(0,255,224,0.04);
-    }
+  .log-entry {
+    font-size: 0.65rem;
+    color: var(--muted);
+    display: flex;
+    gap: 10px;
+  }
 
-    .voice-btn:active { transform: scale(0.98); }
+  .log-entry .time { color: #2d3748; flex-shrink: 0; }
+  .log-entry.success .msg { color: var(--accent); }
+  .log-entry.error .msg { color: var(--danger); }
+  .log-entry.info .msg { color: var(--accent2); }
 
-    .voice-btn.active {
-      border-color: var(--warn);
-      background: rgba(255,183,0,0.06);
-      color: var(--warn);
-    }
+  /* ── KEYBOARD HINT ── */
+  .kbd-hint {
+    text-align: center;
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 16px;
+    letter-spacing: 1px;
+    animation: fadeUp 0.6s ease 0.5s both;
+  }
 
-    .mic-icon {
-      font-size: 22px;
-      transition: color 0.15s;
-    }
+  .kbd-hint kbd {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+  }
 
-    .voice-btn.active .mic-icon {
-      animation: mic-pulse 0.8s infinite;
-    }
+  /* ── ANIMATIONS ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 
-    @keyframes mic-pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.2); }
-    }
-
-    /* ── Command Log ── */
-    .log-section {
-      width: 100%;
-      max-width: 480px;
-    }
-
-    .log-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px 14px;
-      max-height: 120px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column-reverse;
-    }
-
-    .log-box::-webkit-scrollbar { width: 3px; }
-    .log-box::-webkit-scrollbar-track { background: transparent; }
-    .log-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-    .log-entry {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-muted);
-      padding: 3px 0;
-      display: flex;
-      gap: 10px;
-      line-height: 1.5;
-    }
-
-    .log-entry:first-child { color: var(--text); }
-
-    .log-time { color: var(--text-muted); flex-shrink: 0; }
-    .log-cmd  { color: var(--accent); }
-    .log-err  { color: var(--danger); }
-  </style>
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
 </head>
 <body>
+<div class="everything">
 
+  <!-- HEADER -->
   <header>
-    <div class="logo">
-      <div class="logo-title">ROBO-CTRL</div>
-      <div class="logo-sub">ESP8266 Interface · v2.0</div>
-    </div>
-    <div class="ip-badge" id="ip-display">192.168.0.186</div>
+    <h1>BUDDY ROBOT</h1>
+    <p>Firebase Remote Controller</p>
   </header>
 
-  <!-- Status -->
+  <!-- STATUS BAR -->
   <div class="status-bar">
-    <div class="status-dot" id="status-dot"></div>
-    <div class="status-label" id="status-label">System <span>READY</span> — awaiting command</div>
+    <div class="status-card" id="connCard">
+      <div class="label">Status</div>
+      <div class="value"><span class="conn-dot" id="connDot"></span><span id="connText">Connecting...</span></div>
+    </div>
+    <div class="status-card" id="distCard">
+      <div class="label">Distance</div>
+      <div class="value"><span id="distVal">--</span> <span style="font-size:0.7rem;color:var(--muted)">cm</span></div>
+    </div>
+    <div class="status-card">
+      <div class="label">Command</div>
+      <div class="value" id="cmdVal" style="font-size:0.75rem;letter-spacing:1px">--</div>
+    </div>
   </div>
 
-  <!-- D-Pad -->
-  <div class="controls-section">
-    <div class="section-label">Direction Control</div>
+  <!-- D-PAD -->
+  <div class="dpad-wrapper">
+    <div class="dpad-title">Direction Control</div>
     <div class="dpad">
-      <div class="corner-cell"></div>
-      <button class="ctrl-btn fwd" onclick="sendCommand('forward')">
-        <span class="icon">▲</span>
-        <span>FWD</span>
-      </button>
-      <div class="corner-cell-2"></div>
-
-      <button class="ctrl-btn left" onclick="sendCommand('left')">
-        <span class="icon">◀</span>
-        <span>LEFT</span>
-      </button>
-      <button class="ctrl-btn stop" onclick="sendCommand('stop')">
-        <span class="icon">■</span>
-        <span>STOP</span>
-      </button>
-      <button class="ctrl-btn right" onclick="sendCommand('right')">
-        <span class="icon">▶</span>
-        <span>RIGHT</span>
-      </button>
-
-      <div class="corner-cell-3"></div>
-      <button class="ctrl-btn back" onclick="sendCommand('backward')">
-        <span class="icon">▼</span>
-        <span>BACK</span>
-      </button>
-      <div class="corner-cell-4"></div>
+      <button class="btn btn-forward"  id="btn-forward"  onclick="sendCommand('forward')"  title="Forward">▲</button>
+      <button class="btn btn-left"     id="btn-left"     onclick="sendCommand('left')"     title="Left">◀</button>
+      <button class="btn btn-stop"     id="btn-stop"     onclick="sendCommand('stop')"     title="Stop">STOP</button>
+      <button class="btn btn-right"    id="btn-right"    onclick="sendCommand('right')"    title="Right">▶</button>
+      <button class="btn btn-backward" id="btn-backward" onclick="sendCommand('backward')" title="Backward">▼</button>
     </div>
+    <div class="cmd-display">Last sent: <span id="lastCmd">--</span></div>
   </div>
 
-  <!-- Speed -->
-  <div class="speed-section">
-    <div class="section-label">Motor Speed</div>
-    <div class="speed-track">
-      <span class="speed-label">SPEED</span>
-      <input type="range" class="speed-slider" id="speed-slider" min="0" max="100" value="75" step="1"
-        oninput="updateSpeed(this.value)">
-      <span class="speed-val" id="speed-val">75%</span>
+  <!-- SPEED -->
+  <div class="speed-panel">
+    <div class="label">
+      Speed Control
+      <span id="speedVal">80%</span>
     </div>
+    <input type="range" min="0" max="100" value="80" id="speedSlider" oninput="updateSpeed(this.value)"/>
   </div>
 
-  <!-- Voice -->
-  <div class="voice-section">
-    <div class="section-label">Voice Command</div>
-    <button class="voice-btn" id="voice-btn" onclick="startVoice()">
-      <span class="mic-icon">🎤</span>
-      <span id="voice-btn-text">Activate Voice</span>
-    </button>
+  <!-- LOG -->
+  <div class="log-panel">
+    <div class="label">Activity Log</div>
+    <div class="log-entries" id="logEntries"></div>
   </div>
 
-  <!-- Log -->
-  <div class="log-section">
-    <div class="section-label">Command Log</div>
-    <div class="log-box" id="log-box">
-      <div class="log-entry">
-        <span class="log-time">--:--:--</span>
-        <span>System initialized</span>
-      </div>
-    </div>
+  <!-- KEYBOARD HINT -->
+  <div class="kbd-hint">
+    Keyboard: <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> <kbd>Space</kbd> = Stop
   </div>
 
-  <script>
-    const espIP = "http://192.168.0.186";
+</div>
 
-    function ts() {
-      const d = new Date();
-      return [d.getHours(), d.getMinutes(), d.getSeconds()]
-        .map(n => String(n).padStart(2, '0')).join(':');
+<!-- Firebase v8 (compat) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<script>
+  // ════════════════════════════════════════
+  //  🔥 FIREBASE CONFIG — update if needed
+  // ════════════════════════════════════════
+  const firebaseConfig = {
+    apiKey:      "AIzaSyBcqUnut2CFJHTYND4a8QxA9CshwEHxl2A",
+    databaseURL: "https://buddy-robot-control-penal-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:   "buddy-robot-control-penal"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db      = firebase.database();
+  const robotRef = db.ref('/robot');
+
+  // ── SEND COMMAND ────────────────────────
+  function sendCommand(cmd) {
+    robotRef.child('command').set(cmd)
+      .then(() => {
+        document.getElementById('lastCmd').textContent = cmd.toUpperCase();
+        document.getElementById('cmdVal').textContent  = cmd.toUpperCase();
+        addLog('success', `→ ${cmd.toUpperCase()}`);
+        flashBtn(cmd);
+      })
+      .catch(err => addLog('error', err.message));
+  }
+
+  // ── SPEED SLIDER ────────────────────────
+  function updateSpeed(val) {
+    document.getElementById('speedVal').textContent = val + '%';
+    document.getElementById('speedSlider').style.setProperty('--val', val + '%');
+    robotRef.child('speed').set(parseInt(val))
+      .catch(() => {});
+  }
+  updateSpeed(80);
+
+  // ── LISTEN TO FIREBASE ──────────────────
+  robotRef.on('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+
+    // Distance
+    const dist = data.distance ?? '--';
+    document.getElementById('distVal').textContent = dist;
+    const distCard = document.getElementById('distCard');
+    distCard.className = (dist !== '--' && dist < 20 && dist > 0)
+      ? 'status-card danger' : 'status-card';
+
+    // Status
+    const dot  = document.getElementById('connDot');
+    const txt  = document.getElementById('connText');
+    const status = data.status ?? 'offline';
+    dot.className  = 'conn-dot ' + (status === 'obstacle' ? 'obstacle' : 'online');
+    txt.textContent = status.toUpperCase();
+
+    // Command
+    if (data.command) {
+      document.getElementById('cmdVal').textContent = data.command.toUpperCase();
     }
+  });
 
-    function log(msg, type = '') {
-      const box = document.getElementById('log-box');
-      const entry = document.createElement('div');
-      entry.className = 'log-entry';
-      entry.innerHTML = `<span class="log-time">${ts()}</span><span class="${type ? 'log-' + type : ''}">${msg}</span>`;
-      box.prepend(entry);
-      while (box.children.length > 20) box.removeChild(box.lastChild);
+  // connection state
+  db.ref('.info/connected').on('value', snap => {
+    const dot = document.getElementById('connDot');
+    const txt = document.getElementById('connText');
+    if (!snap.val()) {
+      dot.className = 'conn-dot';
+      txt.textContent = 'OFFLINE';
+      addLog('error', 'Firebase disconnected');
+    } else {
+      addLog('info', 'Firebase connected');
     }
+  });
 
-    function setStatus(msg, state = 'idle') {
-      const dot = document.getElementById('status-dot');
-      const lbl = document.getElementById('status-label');
-      dot.className = 'status-dot' + (state !== 'idle' ? ' ' + state : '');
-      lbl.innerHTML = msg;
-    }
+  // ── LOG ─────────────────────────────────
+  function addLog(type, msg) {
+    const now  = new Date();
+    const time = now.toTimeString().slice(0,8);
+    const el   = document.createElement('div');
+    el.className = 'log-entry ' + type;
+    el.innerHTML = `<span class="time">${time}</span><span class="msg">${msg}</span>`;
+    const log = document.getElementById('logEntries');
+    log.prepend(el);
+    if (log.children.length > 30) log.lastChild.remove();
+  }
 
-    function sendCommand(cmd) {
-      setStatus(`Executing: <span>${cmd.toUpperCase()}</span>`);
-      log(`CMD → ${cmd.toUpperCase()}`, 'cmd');
-      const img = new Image();
-      img.src = `${espIP}/${cmd}`;
-      img.onload  = () => setStatus(`Command <span>${cmd.toUpperCase()}</span> sent`);
-      img.onerror = () => setStatus(`Command <span>${cmd.toUpperCase()}</span> sent`);
-    }
+  // ── FLASH BUTTON ────────────────────────
+  function flashBtn(cmd) {
+    const map = { forward:'btn-forward', backward:'btn-backward', left:'btn-left', right:'btn-right', stop:'btn-stop' };
+    const id  = map[cmd];
+    if (!id) return;
+    const el  = document.getElementById(id);
+    if (!el)  return;
+    el.classList.add('pressed');
+    setTimeout(() => el.classList.remove('pressed'), 200);
+  }
 
-    function updateSpeed(val) {
-      const pct = val + '%';
-      document.getElementById('speed-val').textContent = pct;
-      document.getElementById('speed-slider').style.setProperty('--pct', pct);
-    }
+  // ── KEYBOARD CONTROL ────────────────────
+  const keyMap = {
+    ArrowUp:    'forward',
+    ArrowDown:  'backward',
+    ArrowLeft:  'left',
+    ArrowRight: 'right',
+    ' ':        'stop',
+    'w':        'forward',
+    's':        'backward',
+    'a':        'left',
+    'd':        'right',
+  };
 
-    updateSpeed(75);
+  let lastKey = null;
 
-    function startVoice() {
-      const btn = document.getElementById('voice-btn');
-      const txt = document.getElementById('voice-btn-text');
+  document.addEventListener('keydown', e => {
+    const cmd = keyMap[e.key];
+    if (!cmd || lastKey === cmd) return;
+    lastKey = cmd;
+    sendCommand(cmd);
+    e.preventDefault();
+  });
 
-      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-        setStatus('Voice recognition <span style="color:var(--danger)">NOT SUPPORTED</span>', 'error');
-        log('Voice: browser not supported', 'err');
-        return;
-      }
-
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SR();
-      recognition.lang = 'en-US';
-      recognition.start();
-
-      btn.classList.add('active');
-      txt.textContent = 'Listening…';
-      setStatus('Voice active — <span>speak now</span>', 'listening');
-      log('Voice recognition started', 'cmd');
-
-      recognition.onresult = function(e) {
-        const heard = e.results[0][0].transcript.toLowerCase();
-        btn.classList.remove('active');
-        txt.textContent = 'Activate Voice';
-        log(`Heard: "${heard}"`, 'cmd');
-
-        if      (heard.includes('forward'))  sendCommand('forward');
-        else if (heard.includes('back'))     sendCommand('backward');
-        else if (heard.includes('left'))     sendCommand('left');
-        else if (heard.includes('right'))    sendCommand('right');
-        else if (heard.includes('stop'))     sendCommand('stop');
-        else {
-          setStatus(`Unrecognized: <span>"${heard}"</span>`, 'error');
-          log(`No match for: "${heard}"`, 'err');
-        }
-      };
-
-      recognition.onerror = function(e) {
-        btn.classList.remove('active');
-        txt.textContent = 'Activate Voice';
-        setStatus(`Voice error: <span style="color:var(--danger)">${e.error}</span>`, 'error');
-        log('Voice error: ' + e.error, 'err');
-      };
-
-      recognition.onend = function() {
-        btn.classList.remove('active');
-        txt.textContent = 'Activate Voice';
-      };
-    }
-  </script>
+  document.addEventListener('keyup', e => {
+    const cmd = keyMap[e.key];
+    if (!cmd) return;
+    lastKey = null;
+    sendCommand('stop');
+  });
+</script>
 </body>
 </html>
